@@ -13,7 +13,7 @@ Running the application out of the box
 
 Build and run the application::
 
-  $ python bootstrap.py
+  $ python bootstrap.py --distribute
   $ ./bin/buildout
   $ ./bin/dev_appserver parts/boboongae
 
