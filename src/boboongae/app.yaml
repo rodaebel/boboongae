@@ -5,5 +5,9 @@ api_version: 1
 
 handlers:
 
+- url: /json
+  script: main.py
+
 - url: .*
   script: main.py
+  login: required
