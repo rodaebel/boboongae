@@ -1,116 +1,106 @@
 package com.example.boboclient.client;
 
 import com.google.gwt.core.client.EntryPoint;
-import com.google.gwt.core.client.JavaScriptObject;
-import com.google.gwt.core.client.JsArray;
-import com.google.gwt.http.client.URL;
+import com.google.gwt.http.client.Request;
+import com.google.gwt.http.client.RequestBuilder;
+import com.google.gwt.http.client.RequestCallback;
+import com.google.gwt.http.client.RequestException;
+import com.google.gwt.http.client.Response;
+import com.google.gwt.json.client.JSONArray;
+import com.google.gwt.json.client.JSONException;
+import com.google.gwt.json.client.JSONNull;
+import com.google.gwt.json.client.JSONNumber;
+import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONParser;
+import com.google.gwt.json.client.JSONString;
+import com.google.gwt.json.client.JSONValue;
+import com.google.gwt.user.client.Window;
+import com.google.gwt.user.client.rpc.AsyncCallback;
 
 
 /**
  * Entry point class.
  */
 public class Boboclient implements EntryPoint {
+	protected final String service_endpoint;
 
-	/**
-	 * The JSON URI.
-	 */
-	private static final String JSON_URI = "/json";
+	private int JSONRequestID;
 
-	/**
-	 * JSON.
-	 */
-	private final native JsArray<BoboData> asArrayOfBboboData(JavaScriptObject jso) /*-{
-		return jso;
-	}-*/;
+	public Boboclient() {
+		this.service_endpoint = "/rpc";
+		this.JSONRequestID = 0;
+	}
 
-	private int jsonRequestId = 0;
+	protected final void sendJSONRequest(String methodName, JSONArray params, final AsyncCallback<JSONValue> cb) {
+		JSONObject requestData = new JSONObject();
+		requestData.put("method", new JSONString(methodName));
+		requestData.put("params", params);
+		requestData.put("jsonrpc", new JSONString("2.0"));
+		requestData.put("id", new JSONNumber(JSONRequestID++));
 
-	/** Make call to remote server.
-	 *
-	 * This JSNI method creates a dynamically-loaded <script> element as a work
-	 * around for the Same-Origin Policy restrictions.
-	 *
-	 *   http://www.w3.org/Security/wiki/Same_Origin_Policy
-	 *
-	 * The src attribute is the URL of the JSON data with the name of a
-	 * callback function appended. When the script executes, it fetches the
-	 * padded JSON; the JSON data is passed as an argument of the callback
-	 * function. When the callback function executes, it calls the Java
-	 * handleJsonResponse method and passes it the JSON data as a JavaScript
-	 * object.
-	 *
-	 * This implementation generates callback function names sequentially in
-	 * case of multiple pending requests.
-	 */
-	public native static void getJson(int requestId, String url, Boboclient handler) /*-{
-		var callback = "callback" + requestId;
+		RequestBuilder rb = this.createBuilder();
 
-		// [1] Create a script element.
-		var script = document.createElement("script");
-		script.setAttribute("src", url+callback);
-		script.setAttribute("type", "text/javascript");
+		try {
+			rb.sendRequest(requestData.toString(), new RequestCallback() {
+				public void onError(Request request, Throwable exception) {
+					cb.onFailure(exception);
+				}
 
-		// [2] Define the callback function on the window object.
-		window[callback] = function(jsonObj) {
+				public void onResponseReceived(Request request, Response response) {
+					String text = response.getText();
+					if (text == null || text.equals("")) {
+						throw new JSONException("Response body from Server was empty");
+					} 
+					JSONObject jsonResponse = (JSONObject) JSONParser.parse(text);
 
-		// [3]
-			handler.@com.example.boboclient.client.Boboclient::handleJsonResponse(Lcom/google/gwt/core/client/JavaScriptObject;)(jsonObj);
-			window[callback + "done"] = true;
-		}
+					// Test if compatible JSON-RPC Response
+					if ((jsonResponse.containsKey("error") || jsonResponse.containsKey("result")) &&
+						!jsonResponse.containsKey("id")
+					) {
+						throw new JSONException("Got not correct JSON_RPC response from Server");
+					} else {
+						JSONValue error = jsonResponse.get("error");
+						if (error != null && !(error instanceof JSONNull)) {
+							throw new JSONException(error.toString());
+						}
 
-		// [4] JSON download has 1-second timeout.
-		setTimeout(function() {
-			if (!window[callback + "done"]) {
-				handler.@com.example.boboclient.client.Boboclient::handleJsonResponse(Lcom/google/gwt/core/client/JavaScriptObject;)(null);
-			}
+						cb.onSuccess(jsonResponse.get("result"));
+					}
+				}
+			});
 
-			// [5] Cleanup. Remove script and callback elements.
-			document.body.removeChild(script);
-			delete window[callback];
-			delete window[callback + "done"];
-		}, 1000);
-
-		// [6] Attach the script element to the document body.
-		document.body.appendChild(script);
-	}-*/;
-
-	/**
-	 * Returns the Service URL.
-	 */
-	public final native static String getServiceURL() /*-{
-		return $wnd.SERVICE_URL;
-	}-*/;
-
-	/**
-	 * Display message.
-	 * @param msg
-	 */
-	private native static void displayMessage(String msg) /*-{
-		$wnd.alert(msg);
-	}-*/;
-
-	/**
-	 * Handle the response to the request for our data from the remote server.
-	 */
-	public void handleJsonResponse(JavaScriptObject jso) {
-		if (jso == null) {
-			displayMessage("No JSON data available.");
-			return;
+		} catch (RequestException e) {
+			cb.onFailure(e);
+		} catch(JSONException e) {
+			cb.onFailure(e);
+		} catch(Exception e) {
+			System.out.println(e);
+			cb.onFailure(e);
 		}
 	}
 
-	private void refreshData() {
-		String url = getServiceURL() + JSON_URI;
+	protected RequestBuilder createBuilder() {
+		RequestBuilder result = new RequestBuilder(RequestBuilder.POST, this.service_endpoint);
+		result.setHeader("Content-type", "application/json; charset=utf-8");
 
-		// Append the name of the callback function to the JSON URL.
-		url = URL.encode(url) + "?callback=";
-
-		// Send request to server by replacing RequestBuilder code with a
-		// call to a JSNI method.
-		getJson(jsonRequestId++, url, this);
+		return result;
 	}
 
 	public void onModuleLoad() {
-		refreshData();
+
+		JSONArray params = new JSONArray();
+		params.set(0, new JSONString("foobar"));
+		sendJSONRequest("data", params, new AsyncCallback<JSONValue>() {
+			
+			@Override
+			public void onSuccess(JSONValue result) {
+				Window.alert(result.toString());
+			}
+			
+			@Override
+			public void onFailure(Throwable caught) {
+				Window.alert(caught.toString());
+			}
+		});
 	}
 }

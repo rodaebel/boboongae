@@ -5,8 +5,11 @@ api_version: 1
 
 handlers:
 
-- url: /json
-  script: main.py
+- url: /rpc
+  script: rpc_service.py
+
+- url: /client
+  static_dir: client
 
 - url: .*
   script: main.py

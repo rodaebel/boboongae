@@ -16,14 +16,13 @@ template_loader = chameleon.zpt.loader.TemplateLoader(
 class BoboData(db.Model):
     string = db.StringProperty()
 
+    def json(self):
+        return "{'string': %s}" % self.string
+
 
 @bobo.query('/')
 def index():
+    BoboData(key_name="foobar", string="foobar").put()
     template = template_loader.load('index.html')
     user = users.get_current_user()
     return template(user=user)
-
-
-@bobo.query('/json', content_type='text/javascript; charset=utf-8')
-def json(callback):
-    return (u'%s(%s);' % (callback, '[{"string": "foobar"}]'))
