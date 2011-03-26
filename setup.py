@@ -41,7 +41,7 @@ setup(
     install_requires=[
         'bobo',
         'chameleon',
-        'distribute',
+        'distribute'
     ],
     zip_safe=False,
 )

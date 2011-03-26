@@ -1,8 +1,5 @@
 """Sample application for running the bobo web framework on GAE."""
 
-import sys
-sys.path.insert(0, 'packages.zip')
-
 from bobo import Application
 from google.appengine.ext.webapp import util
 
