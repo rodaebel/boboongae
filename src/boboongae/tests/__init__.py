@@ -1,5 +1,7 @@
 """Testing boboongae."""
 
+from google.appengine.ext import testbed
+
 import bobo
 import nose.tools
 import os
@@ -12,7 +14,14 @@ app = webtest.TestApp(bobo.Application(bobo_resources='boboapp'))
 def setup_func():
     """Set up test fixtures."""
 
-    os.environ['USER_EMAIL'] = 'bobo@bobo.net'
+    # Create an instance of the Testbed class
+    tb = testbed.Testbed()
+
+    # Activate the testbed
+    tb.activate()
+
+    # We need an authenticated admin user
+    tb.init_user_stub()
 
 
 @nose.tools.with_setup(setup_func)
