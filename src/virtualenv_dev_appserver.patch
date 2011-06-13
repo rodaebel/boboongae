@@ -1,0 +1,13 @@
+--- google_appengine/google/appengine/tools/dev_appserver.py
++++ google_appengine/google/appengine/tools/dev_appserver.py
+@@ -964,6 +964,10 @@
+       os.path.normcase(os.path.abspath(os.path.dirname(os.__file__))),
+       os.path.normcase(os.path.dirname(os.path.realpath(os.__file__))),
+       os.path.normcase(os.path.dirname(os.path.abspath(os.__file__))),
++      os.path.normcase(os.path.realpath(os.path.dirname(cgi.__file__))),
++      os.path.normcase(os.path.abspath(os.path.dirname(cgi.__file__))),
++      os.path.normcase(os.path.dirname(os.path.realpath(cgi.__file__))),
++      os.path.normcase(os.path.dirname(os.path.abspath(cgi.__file__))),
+   ])
+ 
+   NOT_ALLOWED_DIRS = set([
