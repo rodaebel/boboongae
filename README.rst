@@ -27,7 +27,7 @@ Running tests
 
 In order to run all functional tests enter the following command::
 
-  $ bin/nosetests -v --with-gae --gae-application=parts/boboongae
+  $ bin/nosetests
 
 
 Uploading and managing
